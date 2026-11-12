@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Bit the Robot: How Computers Think</title>
+<style>
+:root{--bg:#0f2a2e;--panel:#173a40;--ink:#f3f7f2;--dim:#9fc2bf;--acc:#ffc233;--glow:#4be0c4;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme=light]){--bg:#0a1c1f}}
+*{box-sizing:inherit}
+html,body{margin:0;min-height:100%}
+body{background:var(--bg);color:var(--ink);font-family:"Trebuchet MS",Verdana,sans-serif;display:flex;justify-content:center}
+.stage{width:min(100%,960px);padding:12px}
+.screen{position:relative;background:var(--panel);border-radius:22px;border:2px solid #2a5961;padding:20px 20px 0;overflow:hidden}
+.chap{color:var(--dim);font-size:.95rem;margin:0 0 8px}
+.row{display:grid;grid-template-columns:minmax(130px,1fr) 2fr;gap:20px;align-items:center;min-height:250px}
+@media(max-width:600px){.row{grid-template-columns:1fr;text-align:center}.robot{max-width:140px;margin:auto}}
+.robot{width:100%}
+.talk .mouth{animation:talk .28s infinite alternate}
+@keyframes talk{from{transform:scaleY(.25)}to{transform:scaleY(1.3)}}
+.mouth{transform-origin:100px 150px}
+.eye{transform-box:fill-box;transform-origin:center;animation:blink 4s infinite}
+@keyframes blink{0%,94%,100%{transform:scaleY(1)}97%{transform:scaleY(.1)}}
+.ant{animation:pulse 1.2s infinite alternate}
+@keyframes pulse{from{fill:#ff6b6b}to{fill:var(--acc)}}
+.card{background:var(--bg);border:2px solid var(--glow);border-radius:18px;padding:22px;text-align:center}
+.card .bits{font-family:"Courier New",monospace;color:var(--glow);letter-spacing:.2em}
+.card h1{margin:.1em 0;font-size:clamp(2rem,8vw,3.6rem);color:var(--acc);line-height:1.05}
+.cc{margin:18px -20px 0;background:#000d;color:#fff;padding:14px 22px;min-height:84px;display:flex;align-items:center;justify-content:center;text-align:center;font-size:clamp(1rem,3.2vw,1.35rem);line-height:1.4}
+.cc[hidden]{display:none}
+.bar{height:8px;background:#2a5961;border-radius:4px;margin:16px 0 10px;overflow:hidden}
+.bar i{display:block;height:100%;width:0;background:var(--acc)}
+.ctl{display:flex;gap:10px;justify-content:center;align-items:center;flex-wrap:wrap}
+button{font:inherit;background:var(--acc);color:#10262a;border:0;border-radius:999px;padding:10px 20px;font-weight:700;cursor:pointer}
+button.sec{background:var(--panel);color:var(--ink);border:2px solid #2a5961}
+button:focus-visible{outline:3px solid var(--ink);outline-offset:2px}
+@media(prefers-reduced-motion:reduce){.talk .mouth,.eye,.ant{animation:none}}
+</style></head>
+<body><div class="stage">
+<div class="screen">
+ <p class="chap" id="chap"></p>
+ <div class="row">
+  <svg class="robot" id="robot" viewBox="0 0 200 240" aria-hidden="true">
+   <line x1="100" y1="20" x2="100" y2="48" stroke="#9fc2bf" stroke-width="4"/>
+   <circle class="ant" cx="100" cy="16" r="9" fill="#ffc233"/>
+   <rect x="35" y="48" width="130" height="120" rx="26" fill="#cfe3e0"/>
+   <rect x="50" y="68" width="100" height="50" rx="16" fill="#10262a"/>
+   <ellipse class="eye" cx="78" cy="93" rx="11" ry="13" fill="#4be0c4"/>
+   <ellipse class="eye" cx="122" cy="93" rx="11" ry="13" fill="#4be0c4"/>
+   <rect class="mouth" x="78" y="142" width="44" height="14" rx="7" fill="#10262a"/>
+   <rect x="22" y="86" width="13" height="36" rx="6" fill="#9fc2bf"/><rect x="165" y="86" width="13" height="36" rx="6" fill="#9fc2bf"/>
+   <rect x="60" y="176" width="80" height="50" rx="14" fill="#ffc233"/>
+   <text x="100" y="208" text-anchor="middle" font-family="Courier New,monospace" font-weight="700" font-size="20" fill="#10262a">0101</text>
+  </svg>
+  <div class="card"><div class="bits" id="bits" aria-hidden="true"></div><h1 id="kw"></h1></div>
+ </div>
+ <div class="cc" id="cc" aria-live="polite"></div>
+</div>
+<div class="bar"><i id="fill"></i></div>
+<div class="ctl">
+ <button class="sec" id="prev">Back</button><button id="play">Play</button><button class="sec" id="next">Next</button>
+ <button class="sec" id="ccb">CC: on</button><button class="sec" id="voice">Voice: on</button>
+</div></div>
+<script>
+const CH=[
+["Meet the computer",[
+["computer","A computer is a machine that uses data and instructions to work."],
+["binary","Unlike people, computers understand information through a number system called binary."],
+["binary","Binary is a number system that uses only two numbers: zero and one."],
+["zero = off, one = on","In binary, zero usually means off, while one means on."],
+["bit","Each zero or one is called a bit, which is the smallest unit of data in a computer."],
+["byte","Eight bits grouped together make a byte."],
+["byte","A byte can represent a letter, number, or symbol."],
+["digital","All digital information, including pictures, videos, music, and documents, is made from these combinations of zeros and ones."],
+["digital","This allows computers to process and store information in a way they can understand."]]],
+["Inside the computer",[
+["hardware","Inside a computer, several hardware parts work together to process information."],
+["microchip","A microchip contains tiny electronic circuits that allow electricity to move through different paths."],
+["circuit","A circuit carries electrical signals that help the computer perform tasks."],
+["switch","A switch is a part that can be turned on or off, helping control the flow of electricity."],
+["memory","The computer uses memory to hold information while it works."],
+["RAM","RAM, which stands for Random Access Memory, temporarily stores information that is being used."],
+["ROM","ROM, or Read-Only Memory, holds important instructions that the computer needs to start and operate."],
+["cache","A cache is a small storage area that keeps frequently used information nearby so the computer can work faster."],
+["system","Together, these parts form a system that allows the computer to operate."]]],
+["Instructions and pictures",[
+["coding","Computers use coding, which means writing instructions that tell a computer what to do."],
+["input / output","Information that goes into a computer is called input, while information that comes out is called output."],
+["input / output","For example, typing on a keyboard is input, while words appearing on a screen are output."],
+["data","A computer follows instructions to process data and create results."],
+["error","Sometimes a program or system has an error, which means something has gone wrong."],
+["digital pictures","Digital pictures are also made using binary code."],
+["pixel","Each tiny dot in a picture is called a pixel."],
+["resolution","The number of pixels in an image helps determine its resolution, or how clear and detailed the picture looks."],
+["file","When a person works on a document, the computer can save the information in a file so it can be opened again later."],
+["storage","Storage provides a place to keep files, pictures, programs, and other digital information."]]],
+["Connecting the world",[
+["network","Computers also communicate with other devices through networks and the internet."],
+["router","A router is a device that sends data between networks, helping computers connect to websites and other devices."],
+["signal","A signal carries a message from one place to another."],
+["transmit","When computers transmit information, they send data through a connection to another device or location."],
+["download","When someone downloads a file, information moves from the internet to their device."],
+["upload","When someone uploads a picture or document, information travels from their device to the internet."],
+["sharing","These actions allow people to share information around the world."],
+["0 and 1","Even though computers can perform millions of tasks, they all depend on the same basic idea: using combinations of zeros and ones to represent, process, store, and transmit information."]]]
+];
+const S=[];CH.forEach(([c,l])=>l.forEach(([k,t])=>S.push({c,k,t})));
+const $=id=>document.getElementById(id);
+let i=0,playing=false,voice=!!window.speechSynthesis,cc=true,timer=null;
+function show(){
+ const s=S[i];
+ $("chap").textContent=s.c;$("kw").textContent=s.k;
+ $("bits").textContent=[...s.k.replace(/[^a-z]/gi,"").slice(0,3).toUpperCase()].map(ch=>ch.charCodeAt(0).toString(2).padStart(8,"0")).join(" ");
+ $("cc").textContent=s.t;$("cc").hidden=!cc;
+ $("fill").style.width=((i+1)/S.length*100)+"%";
+ $("voice").textContent="Voice: "+(voice?"on":"off");$("ccb").textContent="CC: "+(cc?"on":"off");
+}
+function stop(){clearTimeout(timer);if(window.speechSynthesis)speechSynthesis.cancel();$("robot").classList.remove("talk")}
+function next(){
+ if(!playing)return;
+ if(i<S.length-1){i++;go()}else{playing=false;$("play").textContent="Replay";$("robot").classList.remove("talk")}
+}
+function go(){
+ stop();show();
+ if(!playing)return;
+ $("robot").classList.add("talk");
+ const t=S[i].t.replace(/\bRAM\b/g,"R A M").replace(/\bROM\b/g,"R O M");
+ if(voice){
+  const u=new SpeechSynthesisUtterance(t);u.pitch=.6;u.rate=.95;
+  u.onend=()=>{$("robot").classList.remove("talk");timer=setTimeout(next,400)};
+  u.onerror=()=>{timer=setTimeout(next,3000)};
+  speechSynthesis.speak(u);
+ }else timer=setTimeout(next,Math.max(2500,S[i].t.split(" ").length*380));
+}
+$("play").onclick=()=>{
+ if(playing){playing=false;stop();$("play").textContent="Play";return}
+ if($("play").textContent==="Replay")i=0;
+ playing=true;$("play").textContent="Pause";go();
+};
+$("next").onclick=()=>{if(i<S.length-1){i++;go()}};
+$("prev").onclick=()=>{if(i>0){i--;go()}};
+$("ccb").onclick=()=>{cc=!cc;show()};
+$("voice").onclick=()=>{voice=!voice&&!!window.speechSynthesis;go()};
+show();
+</script></body></html>
